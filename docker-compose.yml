@@ -1,0 +1,24 @@
+services:
+  mongo:
+    image: mongo:7.0.5
+    environment:
+    - "MONGO_INITDB_ROOT_USERNAME=admin123"
+    - "MONGO_INITDB_ROOT_PASSWORD=admin123"
+    networks:
+      - app
+
+  app:
+    image: suryanshverma/backend-server-app
+    ports:
+      - "8080:8080"
+    environment:
+    - "MONGO_URI=mongodb://mongo:27017"
+    - "MONGO_USER=admin123"
+    - "MONGO_PASS=admin123"
+    depends_on:
+      - mongo
+    networks:
+      - app
+  
+networks:
+  app:

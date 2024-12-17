@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+matadata:
+  name: backend-svc
+  namespace: my-app
+spec:
+  selector:
+    app: backend
+  type: ClusterIP
+  ports:
+  - name: backend-svc
+    protocol: TCP
+    port: 8080
+    targetPort: 8080
+
