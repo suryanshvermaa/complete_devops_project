@@ -1,12 +1,12 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: backend-server-app
+  name: backend-server
   namespace: my-app
   labels:
     app: backend
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: backend
@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: backend-container
-        image: suryanshverma/backend-server-app
+        image: suryanshverma/backend-server-app:latest
         env:
           - name: MONGO_URI
             valueFrom:
@@ -28,20 +28,20 @@ spec:
           - name: MONGO_USER
             valueFrom: 
               secretKeyRef:
-                name: my-app-secret
+                name: my-secret
                 key: mongo-user
 
           - name: MONGO_PASS
             valueFrom:
               secretKeyRef:
-                name: my-app-secret
+                name: my-secret
                 key: mongo-pass
 
         ports:
           - containerPort: 8080
         resources:
           requests:
-            cpu: "1000m"
+            cpu: "500m"
             memory: "1000Mi"
           limits:
             cpu: "1000m"

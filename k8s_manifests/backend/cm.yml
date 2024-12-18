@@ -4,5 +4,5 @@ metadata:
   name: my-app-cm
   namespace: my-app
 data:
-  mongo-uri: "mongodb://mongo-svc:27017/my-app"
+  mongo-uri: "mongodb://mongo-svc:27017"
 

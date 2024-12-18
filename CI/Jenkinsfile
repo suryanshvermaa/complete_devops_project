@@ -1,0 +1,90 @@
+pipeline{
+    agent any
+    environment{
+            SONAR_HOME  = tool "Sonar"
+    }
+    parameters{
+        string(name: 'BACKEND_DOCKER_TAG',defaultValue:'',description:'setting docker image for latest push')
+    }
+    stages{
+        stage("Validate parameters"){
+            steps{
+                script{
+                    if(params.BACKEND_DOCKER_TAG==''){
+                        error("Backend Docker tag is missing")
+                    }
+                }
+            }
+        }
+        stage("Workspace Cleanup"){
+            steps{
+                script{
+                    cleanWs()
+                }
+            }
+        }
+        stage("Git: Code Checkout"){
+            steps{
+                    git "https://github.com/suryanshvermaa/complete_devops_project.git",branch: 'master'
+            }
+        }
+        stage("trivy: filesystem scan"){
+            steps{
+                sh "trivy fs ./BackendServer"
+            }
+        }
+        stage("Owasp: Dependency Check"){
+            steps{
+                dependencyCheck additionalArguments: '--scan ./BackendServer', odcInstallation:'Owasp'
+                dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
+            }
+        }
+
+        stage("Sonarqube: Code Analysis"){
+            steps{
+                withSonarQubeEnv("Sonar"){
+                    sh "${SONAR_HOME}/bin/sonar-scanner -Dsonar.projectName=DevSecOpsProject -Dsonar.projectKey=DevSecOpsProject"
+                }
+            }
+        }
+        stage("SonarQube: Quality Gate Scan"){
+            steps{
+                timeout(time:1,unit:"MINUTES"){
+                    waitForQualityGate abortPipeline: false
+                }
+            }
+        }
+        stage("Exporting environment variables"){
+            steps{
+                script{
+                    dir('automations'){
+                        sh 'bash updateBackend.sh'
+                    }
+                }
+            }
+        }
+        stage('Build: docker build'){
+            steps{
+                sh "docker build -t backendApp"
+             }
+        }
+        stage('Push: dockerhub push'){
+            steps{
+                withCredentials([usernamePassword(credentialsId:"dockerhubCredentials",passwordVariable:"dockerPass",usernameVariable:"dockerUser")]){
+                    sh "docker login -u ${env.dockerUser} -p ${env.dockerPass}"
+                    sh "docker tag backendApp ${env.dockerUser}/backend-server-app:${parms.BACKEND_DOCKER_TAG}"
+                    sh "docker push ${env.dockerUser}/backend-server-app:${parms.BACKEND_DOCKER_TAG}"
+                    echo "pushing completed"
+                }
+            }
+        }
+        post{
+            success{
+                archiveArtifacts artifacts: '*.xml', followSymlinks: false
+                build job: 'backendAppCD',parameters: [
+                    string(name:'BACKEND_DOCKER_TAG',value:${parms.BACKEND_DOCKER_TAG})
+                ]
+            }
+        }
+    }
+}
